@@ -114,6 +114,7 @@ static struct {
                 {NPY_CPU_FEATURE_NEON, "NEON"},
                 {NPY_CPU_FEATURE_NEON_FP16, "NEON_FP16"},
                 {NPY_CPU_FEATURE_NEON_VFPV4, "NEON_VFPV4"},
+                {NPY_CPU_FEATURE_LSX, "LSX"},
                 {NPY_CPU_FEATURE_ASIMD, "ASIMD"},
                 {NPY_CPU_FEATURE_FPHP, "FPHP"},
                 {NPY_CPU_FEATURE_ASIMDHP, "ASIMDHP"},
@@ -618,6 +619,29 @@ npy__cpu_init_features(void)
 #endif
 }
 
+ /***************** LoongArch ******************/
+
+ #elif defined(__loongarch__)
+
+ #include <sys/auxv.h>
+ #include <asm/hwcap.h>
+
+ static void
+ npy__cpu_init_features(void)
+ {
+    memset(npy__cpu_have, 0, sizeof(npy__cpu_have[0]) * NPY_CPU_FEATURE_MAX);
+    unsigned int hwcap = getauxval(AT_HWCAP);
+    if ((hwcap & HWCAP_LOONGARCH_LSX) == 0) {
+        return;
+    }
+
+    if ((hwcap & HWCAP_LOONGARCH_LSX)==0x10) {
+       npy__cpu_have[NPY_CPU_FEATURE_LSX]  = 1;
+       return;
+    }
+    }
+
+
 /***************** ZARCH ******************/
 
 #elif defined(__s390x__)
@@ -815,7 +839,7 @@ npy__cpu_init_features(void)
 {
     /*
      * just in case if the compiler doesn't respect ANSI
-     * but for knowing paltforms it still nessecery, because @npy__cpu_init_features
+     * but for knowing platforms it still nessecery, because @npy__cpu_init_features
      * may called multiple of times and we need to clear the disabled features by
      * ENV Var or maybe in the future we can support other methods like
      * global variables, go back to @npy__cpu_try_disable_env for more understanding

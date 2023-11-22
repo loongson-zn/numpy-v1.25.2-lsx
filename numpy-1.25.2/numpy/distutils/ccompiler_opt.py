@@ -234,7 +234,8 @@ class _Config:
         ppc64le = "VSX VSX2",
         s390x = '',
         armhf = '', # play it safe
-        aarch64 = "NEON NEON_FP16 NEON_VFPV4 ASIMD"
+        aarch64 = "NEON NEON_FP16 NEON_VFPV4 ASIMD",
+        loongarch64 = "LSX"
     )
     conf_features = dict(
         # X86
@@ -301,7 +302,8 @@ class _Config:
         ## Power8/ISA 2.07
         VSX2 = dict(interest=2, implies="VSX", implies_detect=False),
         ## Power9/ISA 3.00
-        VSX3 = dict(interest=3, implies="VSX2", implies_detect=False),
+        VSX3 = dict(interest=3, implies="VSX2", implies_detect=False,
+                    extra_checks="VSX3_HALF_DOUBLE"),
         ## Power10/ISA 3.1
         VSX4 = dict(interest=4, implies="VSX3", implies_detect=False,
                     extra_checks="VSX4_MMA"),
@@ -325,6 +327,8 @@ class _Config:
         ASIMDDP = dict(interest=6, implies="ASIMD"),
         ## ARMv8.2 Single & half-precision Multiply
         ASIMDFHM = dict(interest=7, implies="ASIMDHP"),
+        ## LOONGSON/LSX
+        LSX = dict(interest=1, headers="lsxintrin.h")
     )
     def conf_features_partial(self):
         """Return a dictionary of supported CPU features by the platform,
@@ -517,6 +521,15 @@ class _Config:
 
             return partial
 
+        on_loongarch = self.cc_on_loongarch64
+        if on_loongarch:
+            partial = dict(
+                LSX = dict(
+                    implies="LSX", flags="-mlsx", autovec=True
+                ),
+            )
+
+            return partial
 
         if self.cc_on_aarch64 and is_unix: return dict(
             NEON = dict(
@@ -929,6 +942,8 @@ class _CCompiler:
         True when the target architecture is 32-bit ARMv7+
     cc_on_aarch64 : bool
         True when the target architecture is 64-bit Armv8-a+
+    cc_on_loongarch64 : bool
+        True when the target architecture is 64-bit LoongArch
     cc_on_noarch : bool
         True when the target architecture is unknown or not supported
     cc_is_gcc : bool
@@ -975,6 +990,7 @@ class _CCompiler:
             ("cc_on_armhf",    ".*arm.*", "defined(__ARM_ARCH_7__) || "
                                           "defined(__ARM_ARCH_7A__)"),
             ("cc_on_s390x",    ".*s390x.*", ""),
+            ("cc_on_loongarch64",    ".*loongarch64.*", ""),
             # undefined platform
             ("cc_on_noarch",   "", ""),
         )
@@ -1047,7 +1063,7 @@ class _CCompiler:
 
         self.cc_march = "unknown"
         for arch in ("x86", "x64", "ppc64", "ppc64le",
-                     "armhf", "aarch64", "s390x"):
+                     "armhf", "aarch64", "s390x", "loongarch64"):
             if getattr(self, "cc_on_" + arch):
                 self.cc_march = arch
                 break
@@ -1308,7 +1324,7 @@ class _Feature:
     def feature_is_exist(self, name):
         """
         Returns True if a certain feature is exist and covered within
-        `_Config.conf_features`.
+        ``_Config.conf_features``.
 
         Parameters
         ----------
