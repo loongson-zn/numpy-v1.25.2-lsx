@@ -57,7 +57,7 @@ setup_base()
     # any specified features will be ignored if they're not supported by compiler or platform
     # note: it almost the same default value of --simd-test except adding policy `$werror` to treat all
     # warnings as errors
-    build_args+=("--simd-test=\$werror BASELINE SSE2 SSE42 XOP FMA4 (FMA3 AVX2) AVX512F AVX512_SKX VSX VSX2 VSX3 NEON ASIMD VX VXE VXE2")
+    build_args+=("--simd-test=\$werror BASELINE SSE2 SSE42 XOP FMA4 (FMA3 AVX2) AVX512F AVX512_SKX VSX VSX2 VSX3 NEON ASIMD VX VXE VXE2 LSX")
   fi
   if [ -z "$USE_DEBUG" ]; then
     $PYTHON setup.py build "${build_args[@]}" install 2>&1 | tee log

@@ -1,4 +1,4 @@
-from .common import Benchmark, TYPES1
+from .common import Benchmark, TYPES1, get_squares_
 
 import numpy as np
 
